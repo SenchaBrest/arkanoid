@@ -1,34 +1,28 @@
 import 'dart:ui' as ui;
-
-
 import 'package:flutter/material.dart';
-import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/services.dart';
-import '../forge2d_game_world.dart';
-import 'ball.dart';
-import 'bonus.dart';
-
 import 'package:flame/components.dart';
 
+import 'package:flame_forge2d/flame_forge2d.dart';
+import '../forge2d_game_world.dart';
 
 
-class Brick extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
+class Bonus extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   final Size size;
   final Vector2 position;
-  final int brickImageId;
+  final String bonusImageId;
   ui.Image? image;
 
-  Brick({
+  Bonus({
     required this.size,
     required this.position,
-    required this.brickImageId,
-
+    required this.bonusImageId,
   }) {
-    _loadImage(brickImageId);
+    _loadImage(bonusImageId);
   }
 
-  Future<void> _loadImage(int brickImageId) async {
-    final data = await rootBundle.load('assets/bricks/$brickImageId.png');
+  void _loadImage(String bonusImageId) async {
+    final data = await rootBundle.load('assets/bonuses/$bonusImageId.gif');
     final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
     final frame = await codec.getNextFrame();
     image = frame.image;
@@ -56,26 +50,16 @@ class Brick extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
     }
   }
 
-  var destroy = false;
-
-  @override
-  void beginContact(Object other, Contact contact) {
-    if (other is Ball) {
-      destroy = true;
-      Bonus(size: size, position: position, bonusImageId: 'blue').addToParent(parent!);
-    }
-  }
-
   @override
   Body createBody() {
     final bodyDef = BodyDef()
       ..userData = this
-      ..type = BodyType.static
+      ..type = BodyType.kinematic
       ..position = position
-      ..angularDamping = 1.0
-      ..linearDamping = 1.0;
+      ..linearVelocity = Vector2(0.0, 1.0);
 
-    final brickBody = world.createBody(bodyDef);
+
+    final bonusBody = world.createBody(bodyDef);
 
     final shape = PolygonShape()
       ..setAsBox(
@@ -85,13 +69,14 @@ class Brick extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
         0.0,
       );
 
-    brickBody.createFixture(
+    bonusBody.createFixture(
       FixtureDef(shape)
-        ..density = 100.0
+        ..density = 0.0
         ..friction = 0.0
-        ..restitution = 0.1,
+        ..restitution = 0.0
+        ..isSensor = true,
     );
 
-    return brickBody;
+    return bonusBody;
   }
 }
