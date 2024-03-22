@@ -18,18 +18,32 @@ class MainGameState extends State<MainGamePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: rwGreen,
+      backgroundColor: Colors.black,
       body: Container(
         color: Colors.black87,
         margin: const EdgeInsets.symmetric(
-          horizontal: 30,
-          vertical: 40,
+          horizontal: 0,
+          vertical: 0,
         ),
-        child: GameWidget(
-          game: forge2dGameWorld,
-          overlayBuilderMap: const {
-            'PreGame': OverlayBuilder.preGame,
-            'PostGame': OverlayBuilder.postGame,
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            final double size = constraints.maxWidth < constraints.maxHeight
+                ? constraints.maxWidth * 1033 / 1060 // 950 * 1017
+                : constraints.maxHeight;
+
+            return Center(
+              child: SizedBox(
+                width: size,
+                height: size,
+                child: GameWidget(
+                  game: forge2dGameWorld,
+                  overlayBuilderMap: const {
+                    'PreGame': OverlayBuilder.preGame,
+                    'PostGame': OverlayBuilder.postGame,
+                  },
+                ),
+              ),
+            );
           },
         ),
       ),

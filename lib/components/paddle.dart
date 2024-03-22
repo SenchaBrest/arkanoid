@@ -29,19 +29,51 @@
 import 'package:flame/components.dart';
 import 'package:flame/extensions.dart';
 import 'package:flame/input.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
+
 import '../forge2d_game_world.dart';
+
+
 
 class Paddle extends BodyComponent<Forge2dGameWorld> with Draggable {
   final Size size;
   final BodyComponent ground;
   final Vector2 position;
+  ui.Image? image;
 
   Paddle({
     required this.size,
     required this.ground,
     required this.position,
-  });
+  }) {
+    _loadImage();
+  }
+
+  Future<void> _loadImage() async {
+    final data = await rootBundle.load('assets/paddle_image.png');
+    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+    final frame = await codec.getNextFrame();
+    image = frame.image;
+  }
+
+  @override
+  void render(Canvas canvas) {
+    if (image != null) {
+      final shape = body.fixtures.first.shape as PolygonShape;
+      canvas.drawImageRect(
+        image!,
+        Rect.fromLTWH(0, 0, image!.width.toDouble(), image!.height.toDouble()),
+        Rect.fromPoints(
+          Offset(shape.vertices[0].x, shape.vertices[0].y),
+          Offset(shape.vertices[2].x, shape.vertices[2].y),
+        ),
+        Paint(),
+      );
+    }
+  }
 
   MouseJoint? _mouseJoint;
   Vector2 dragStartPosition = Vector2.zero();

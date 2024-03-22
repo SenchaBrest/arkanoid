@@ -27,14 +27,44 @@
 // THE SOFTWARE.
 
 import 'package:flame_forge2d/flame_forge2d.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flame/extensions.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'dart:ui' as ui;
 
 import '../forge2d_game_world.dart';
 
 class Ball extends BodyComponent<Forge2dGameWorld> {
   final Vector2 position;
   final double radius;
+  ui.Image? image;
 
-  Ball({required this.position, required this.radius});
+  Ball({required this.position, required this.radius}) {
+    _loadImage();
+  }
+
+  Future<void> _loadImage() async {
+    final data = await rootBundle.load('assets/ball_image.png');
+    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+    final frame = await codec.getNextFrame();
+    image = frame.image;
+  }
+
+  @override
+  void render(Canvas canvas) {
+    if (image != null) {
+      final circle = body.fixtures.first.shape as CircleShape;
+      canvas.drawImageRect(
+        image!,
+        Rect.fromLTWH(0, 0, image!.width.toDouble(), image!.height.toDouble()),
+        Rect.fromCircle(
+          center: circle.position.toOffset(),
+          radius: radius,
+        ),
+        Paint(),
+      );
+    }
+  }
 
   @override
   Body createBody() {

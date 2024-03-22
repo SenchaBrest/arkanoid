@@ -49,8 +49,12 @@ class BrickWall extends Component with HasGameRef<Forge2dGameWorld> {
         columns = columns ?? 1,
         gap = gap ?? 0.1;
 
+  late final List<Color> _colors;
+
+
   @override
   Future<void> onLoad() async {
+    _colors = _colorSet(rows);
     await _buildWall();
   }
 
@@ -78,11 +82,7 @@ class BrickWall extends Component with HasGameRef<Forge2dGameWorld> {
   }
 
   Future<void> _buildWall() async {
-    final wallSize = size ??
-        Size(
-          gameRef.size.x,
-          gameRef.size.y * 0.25,
-        );
+    final wallSize = size!;
 
     final brickSize = Size(
       ((wallSize.width - gap * 2.0) - (columns - 1) * gap) / columns,
@@ -90,7 +90,7 @@ class BrickWall extends Component with HasGameRef<Forge2dGameWorld> {
     );
 
     var brickPosition = Vector2(
-      brickSize.width / 2.0 + gap,
+      brickSize.width / 2.0 + position.x + gap,
       brickSize.height / 2.0 + position.y,
     );
 
@@ -99,11 +99,12 @@ class BrickWall extends Component with HasGameRef<Forge2dGameWorld> {
         await add(Brick(
           size: brickSize,
           position: brickPosition,
+          color: _colors[i],
         ));
         brickPosition += Vector2(brickSize.width + gap, 0.0);
       }
       brickPosition += Vector2(
-        (brickSize.width / 2.0 + gap) - brickPosition.x,
+        (brickSize.width / 2.0 + gap) - brickPosition.x + position.x,
         brickSize.height + gap,
       );
     }
@@ -113,4 +114,22 @@ class BrickWall extends Component with HasGameRef<Forge2dGameWorld> {
     removeAll(children);
     await _buildWall();
   }
+
+  // Generate a set of colors for the bricks that span a range of colors.
+  // This color generator creates a set of colors spaced across the
+  // color spectrum.
+  static const transparency = 1.0;
+  static const saturation = 0.85;
+  static const lightness = 0.5;
+
+  List<Color> _colorSet(int count) => List<Color>.generate(
+    count,
+        (int index) => HSLColor.fromAHSL(
+      transparency,
+      index / count * 360.0,
+      saturation,
+      lightness,
+    ).toColor(),
+    growable: false,
+  );
 }

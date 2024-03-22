@@ -36,22 +36,37 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
   }
 
   Future<void> _initializeGame() async {
+    final paddingRatio = Vector2(0.0, 0.0);
+    paddingRatio.x = 43 / 1033;
+    paddingRatio.y = 44 / 1060;
+
     _arena = Arena();
     await add(_arena);
 
-    final brickWallPosition = Vector2(0.0, size.y * 0.075);
+    final brickWallSize = Size(
+        size.x * (1 - 2 * paddingRatio.x),
+        size.y * 255 / 1060,
+    );
+    final brickWallPosition = Vector2(
+        size.x * paddingRatio.x,
+        size.y * paddingRatio.y + size.y * 135 / 1060,
+    );
 
     _brickWall = BrickWall(
       position: brickWallPosition,
-      rows: 1,
-      columns: 6,
+      size: brickWallSize,
+      rows: 6,
+      columns: 11,
     );
     await add(_brickWall);
 
-    final deadZoneSize = Size(size.x, size.y * 0.1);
+    final deadZoneSize = Size(
+        size.x * (1 - 2 * paddingRatio.x),
+        size.y * (1 - paddingRatio.y - 940 / 1060)
+    );
     final deadZonePosition = Vector2(
       size.x / 2.0,
-      size.y - (size.y * 0.1) / 2.0,
+      size.y - deadZoneSize.height / 2.0,
     );
 
     _deadZone = DeadZone(
@@ -60,7 +75,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
     );
     await add(_deadZone);
 
-    const paddleSize = Size(4.0, 0.8);
+    final paddleSize = Size(size.x * 135 / 1033, size.y * 33 / 1060);
     final paddlePosition = Vector2(
       size.x / 2.0,
       size.y - deadZoneSize.height - paddleSize.height / 2.0,
@@ -73,9 +88,12 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
     );
     await add(_paddle);
 
-    final ballPosition = Vector2(size.x / 2.0, size.y / 2.0 + 10.0);
+    final ballPosition = Vector2(
+        size.x / 2.0,
+        size.y - deadZoneSize.height - paddleSize.height,
+    );
     _ball = Ball(
-      radius: 0.5,
+      radius: 0.5 * size.x * 27 / 1033 ,
       position: ballPosition,
     );
     await add(_ball);
