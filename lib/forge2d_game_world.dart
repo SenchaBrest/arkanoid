@@ -8,6 +8,7 @@ import 'components/ball.dart';
 import 'components/brick_wall.dart';
 import 'components/paddle.dart';
 import 'components/dead_zone.dart';
+import 'components/life.dart';
 
 
 enum GameState {
@@ -29,6 +30,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
   late final BrickWall _brickWall;
   late final DeadZone _deadZone;
   late final Paddle _paddle;
+  late final LifeManager lives;
 
   @override
   Future<void> onLoad() async {
@@ -97,6 +99,23 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
       position: ballPosition,
     );
     await add(_ball);
+
+    final lifeManagerSize = Size(
+      size.x * (1 - 2 * paddingRatio.x),
+      size.y * 16 / 1060,
+    );
+    final lifeManagerPosition = Vector2(
+      size.x * paddingRatio.x,
+      size.y * paddingRatio.y + size.y * 999 / 1060,
+    );
+
+    lives = LifeManager(
+      position: lifeManagerPosition,
+      size: lifeManagerSize,
+    );
+    lives.addLife();
+    lives.addLife();
+    await add(lives);
 
     gameState = GameState.ready;
     overlays.add('PreGame');
