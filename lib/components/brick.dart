@@ -1,5 +1,5 @@
+import 'dart:math';
 import 'dart:ui' as ui;
-
 
 import 'package:flutter/material.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
@@ -10,25 +10,32 @@ import 'bonus.dart';
 
 import 'package:flame/components.dart';
 
-
+enum BrickColor {
+  gray,
+  red,
+  yellow,
+  blue,
+  pink,
+  green,
+}
 
 class Brick extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   final Size size;
   final Vector2 position;
-  final int brickImageId;
+  final BrickColor brickColor;
   ui.Image? image;
 
   Brick({
     required this.size,
     required this.position,
-    required this.brickImageId,
+    required this.brickColor,
 
   }) {
-    _loadImage(brickImageId);
+    _loadImage();
   }
 
-  Future<void> _loadImage(int brickImageId) async {
-    final data = await rootBundle.load('assets/bricks/$brickImageId.png');
+  Future<void> _loadImage() async {
+    final data = await rootBundle.load('assets/bricks/${brickColor.index}.png');
     final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
     final frame = await codec.getNextFrame();
     image = frame.image;
@@ -62,7 +69,19 @@ class Brick extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   void beginContact(Object other, Contact contact) {
     if (other is Ball) {
       destroy = true;
-      Bonus(size: size, position: position, bonusImageId: 'blue').addToParent(parent!);
+
+      double probability = 0.5;
+      double randomValue = Random().nextDouble();
+
+      if (randomValue < probability) {
+        List<BonusColor> bonusColors = BonusColor.values;
+        int randomIndex = Random().nextInt(bonusColors.length);
+        Bonus(
+            size: size,
+            position: position,
+            bonusColor: bonusColors[randomIndex]
+        ).addToParent(parent!);
+      }
     }
   }
 

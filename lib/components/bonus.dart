@@ -5,32 +5,69 @@ import 'package:flame/components.dart';
 
 import 'package:flame_forge2d/flame_forge2d.dart';
 import '../forge2d_game_world.dart';
+import 'dead_zone.dart';
+import 'paddle.dart';
 
+enum BonusColor {
+  blue,
+  gray,
+  green,
+  lightBlue,
+  orange,
+  pink,
+  red,
+}
 
 class Bonus extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   final Size size;
   final Vector2 position;
-  final String bonusImageId;
-  ui.Image? image;
+  final BonusColor bonusColor;
+  List<ui.Image> frames = [];
+  int currentFrameIndex = 0;
+  double timeSinceLastFrame = 0.0;
+  double frameDuration = 0.5;
 
   Bonus({
     required this.size,
     required this.position,
-    required this.bonusImageId,
+    required this.bonusColor,
   }) {
-    _loadImage(bonusImageId);
+    _loadImage();
   }
 
-  void _loadImage(String bonusImageId) async {
-    final data = await rootBundle.load('assets/bonuses/$bonusImageId.gif');
+  void _loadImage() async {
+    final data = await rootBundle.load('assets/bonuses/${bonusColor.index}.gif');
     final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
-    final frame = await codec.getNextFrame();
-    image = frame.image;
+    for (int i = 0; i < codec.frameCount; i++) {
+      final frame = await codec.getNextFrame();
+      frames.add(frame.image);
+    }
+  }
+
+  @override
+  void update(double dt) {
+    timeSinceLastFrame += dt;
+    if (timeSinceLastFrame >= frameDuration) {
+      timeSinceLastFrame = 0.0;
+      currentFrameIndex = (currentFrameIndex + 1) % frames.length;
+    }
+  }
+
+  var destroy = false;
+
+  @override
+  void beginContact(Object other, Contact contact) {
+    if (other is Paddle) {
+      destroy = true;
+    }
+    if (other is DeadZone) {
+      destroy = true;
+    }
   }
 
   @override
   void render(Canvas canvas) {
-    if (image != null) {
+    if (frames.isNotEmpty) {
       if (body.fixtures.isEmpty) {
         return;
       }
@@ -38,8 +75,8 @@ class Bonus extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
       final rectangle = body.fixtures.first.shape as PolygonShape;
 
       canvas.drawImageRect(
-        image!,
-        Rect.fromLTWH(0, 0, image!.width.toDouble(), image!.height.toDouble()),
+        frames[currentFrameIndex],
+        Rect.fromLTWH(0, 0, frames[currentFrameIndex].width.toDouble(), frames[currentFrameIndex].height.toDouble()),
         Rect.fromCenter(
           center: rectangle.centroid.toOffset(),
           width: size.width,
@@ -54,9 +91,9 @@ class Bonus extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   Body createBody() {
     final bodyDef = BodyDef()
       ..userData = this
-      ..type = BodyType.kinematic
+      ..type = BodyType.dynamic
       ..position = position
-      ..linearVelocity = Vector2(0.0, 1.0);
+      ..linearVelocity = Vector2(0.0, 5.0);
 
 
     final bonusBody = world.createBody(bodyDef);

@@ -30,6 +30,7 @@ import 'package:flutter/material.dart';
 import 'package:flame/components.dart';
 import '../forge2d_game_world.dart';
 import 'brick.dart';
+import 'bonus.dart';
 
 class BrickWall extends Component with HasGameRef<Forge2dGameWorld> {
   final Vector2 position;
@@ -64,6 +65,13 @@ class BrickWall extends Component with HasGameRef<Forge2dGameWorld> {
         gameRef.world.destroyBody(child.body);
         remove(child);
       }
+      if (child is Bonus && child.destroy) {
+        for (final fixture in [...child.body.fixtures]) {
+          child.body.destroyFixture(fixture);
+        }
+        gameRef.world.destroyBody(child.body);
+        remove(child);
+      }
     }
 
     if (children.isEmpty) {
@@ -88,10 +96,11 @@ class BrickWall extends Component with HasGameRef<Forge2dGameWorld> {
 
     for (var i = 0; i < rows; i++) {
       for (var j = 0; j < columns; j++) {
+        List<BrickColor> brickColors = BrickColor.values;
         await add(Brick(
           size: brickSize,
           position: brickPosition,
-          brickImageId: i + 1,
+          brickColor: brickColors[i],
         ));
         brickPosition += Vector2(brickSize.width + gap, 0.0);
       }

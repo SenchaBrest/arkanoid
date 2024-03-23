@@ -36,8 +36,6 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../forge2d_game_world.dart';
 
-
-
 class Paddle extends BodyComponent<Forge2dGameWorld> with Draggable {
   final Size size;
   final BodyComponent ground;
@@ -82,6 +80,7 @@ class Paddle extends BodyComponent<Forge2dGameWorld> with Draggable {
   @override
   Body createBody() {
     final bodyDef = BodyDef()
+      ..userData = this
       ..type = BodyType.dynamic
       ..position = position
       ..fixedRotation = true

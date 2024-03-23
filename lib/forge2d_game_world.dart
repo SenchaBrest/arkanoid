@@ -93,7 +93,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
         size.y - deadZoneSize.height - paddleSize.height,
     );
     _ball = Ball(
-      radius: 0.5 * size.x * 27 / 1033 ,
+      radius: 0.5 * size.x * 27 / 1033,
       position: ballPosition,
     );
     await add(_ball);
