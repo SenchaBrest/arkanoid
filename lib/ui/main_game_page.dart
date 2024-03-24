@@ -39,6 +39,7 @@ class MainGameState extends State<MainGamePage> {
                   game: forge2dGameWorld,
                   overlayBuilderMap: const {
                     'PreGame': OverlayBuilder.preGame,
+                    'InGame': OverlayBuilder.inGame,
                     'PostGame': OverlayBuilder.postGame,
                   },
                 ),

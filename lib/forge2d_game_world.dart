@@ -18,6 +18,7 @@ enum GameState {
   paused,
   won,
   lost,
+  lostLife,
 }
 
 class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
@@ -128,6 +129,9 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
     _paddle.reset();
     await _brickWall.reset();
 
+    lives.addLife();
+    lives.addLife();
+
     gameState = GameState.ready;
 
     overlays.remove(overlays.activeOverlays.first);
@@ -142,21 +146,31 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
 
     if (gameState == GameState.lost || gameState == GameState.won) {
       pauseEngine();
+      overlays.add('PostGame');
+    }
+    if (gameState == GameState.lostLife) {
+      pauseEngine();
+
+      lives.removeLife();
+      _paddle.reset();
+      _ball.reset();
+      _brickWall.resetOnlyBonuses();
+
+      gameState = GameState.ready;
+
+      overlays.add('InGame');
+
+      resumeEngine();
     }
   }
 
   @override
   void onTapDown(int pointerId, TapDownInfo info) {
     if (gameState == GameState.ready) {
-      overlays.remove('PreGame');
+      overlays.remove(overlays.activeOverlays.first);
       _ball.body.applyLinearImpulse(Vector2(-10.0, -10.0));
       gameState = GameState.running;
     }
     super.onTapDown(pointerId, info);
-
-    if (gameState == GameState.lost || gameState == GameState.won) {
-      pauseEngine();
-      overlays.add('PostGame');
-    }
   }
 }

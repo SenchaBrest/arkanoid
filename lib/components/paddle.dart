@@ -190,5 +190,6 @@ class Paddle extends BodyComponent<Forge2dGameWorld> with Draggable {
     body.setTransform(position, angle);
     body.angularVelocity = 0.0;
     body.linearVelocity = Vector2.zero();
+    onDragCancel();
   }
 }

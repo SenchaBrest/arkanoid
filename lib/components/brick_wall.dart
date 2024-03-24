@@ -115,4 +115,16 @@ class BrickWall extends Component with HasGameRef<Forge2dGameWorld> {
     removeAll(children);
     await _buildWall();
   }
+
+  Future<void> resetOnlyBonuses() async {
+    for (final child in [...children]) {
+      if (child is Bonus) {
+        for (final fixture in [...child.body.fixtures]) {
+          child.body.destroyFixture(fixture);
+        }
+        gameRef.world.destroyBody(child.body);
+        remove(child);
+      }
+    }
+  }
 }

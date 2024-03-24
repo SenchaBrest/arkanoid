@@ -38,6 +38,10 @@ class LifeManager extends Component {
     remove(lives.last);
     lives.removeLast();
   }
+
+  int getLifeAmount(){
+    return lives.length;
+  }
 }
 
 class Life extends SpriteComponent with HasGameRef {

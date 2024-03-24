@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import '../forge2d_game_world.dart';
 
-// 1
 class OverlayBuilder {
   OverlayBuilder._();
 
-  // 2
   static Widget preGame(BuildContext context, Forge2dGameWorld game) {
+    return const PreGameOverlay();
+  }
+
+  static Widget inGame(BuildContext context, Forge2dGameWorld game) {
     return const PreGameOverlay();
   }
 
@@ -18,7 +20,6 @@ class OverlayBuilder {
   }
 }
 
-// 3
 class PreGameOverlay extends StatelessWidget {
   const PreGameOverlay({super.key});
 
@@ -27,6 +28,23 @@ class PreGameOverlay extends StatelessWidget {
     return const Center(
       child: Text(
         'Tap Paddle to Begin',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 24,
+        ),
+      ),
+    );
+  }
+}
+
+class InGameOverlay extends StatelessWidget {
+  const InGameOverlay({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text(
+        'Tap Paddle to Continue',
         style: TextStyle(
           color: Colors.white,
           fontSize: 24,
