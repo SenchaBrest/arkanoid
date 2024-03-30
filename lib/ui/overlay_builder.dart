@@ -9,7 +9,7 @@ class OverlayBuilder {
   }
 
   static Widget inGame(BuildContext context, Forge2dGameWorld game) {
-    return const PreGameOverlay();
+    return const InGameOverlay();
   }
 
   static Widget postGame(BuildContext context, Forge2dGameWorld game) {

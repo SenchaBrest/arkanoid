@@ -2,13 +2,13 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flame/components.dart';
-
 import 'package:flame_forge2d/flame_forge2d.dart';
+
 import '../forge2d_game_world.dart';
 import 'dead_zone.dart';
 import 'paddle.dart';
 
-enum BonusColor {
+enum BonusState {
   blue,
   gray,
   green,
@@ -16,12 +16,13 @@ enum BonusColor {
   orange,
   pink,
   red,
+  none,
 }
 
 class Bonus extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   final Size size;
   final Vector2 position;
-  final BonusColor bonusColor;
+  final BonusState bonusState;
   List<ui.Image> frames = [];
   int currentFrameIndex = 0;
   double timeSinceLastFrame = 0.0;
@@ -30,13 +31,13 @@ class Bonus extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   Bonus({
     required this.size,
     required this.position,
-    required this.bonusColor,
+    required this.bonusState,
   }) {
     _loadImage();
   }
 
   void _loadImage() async {
-    final data = await rootBundle.load('assets/bonuses/${bonusColor.index}.gif');
+    final data = await rootBundle.load('assets/bonuses/${bonusState.index}.gif');
     final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
     for (int i = 0; i < codec.frameCount; i++) {
       final frame = await codec.getNextFrame();
@@ -59,6 +60,7 @@ class Bonus extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   void beginContact(Object other, Contact contact) {
     if (other is Paddle) {
       destroy = true;
+      gameRef.bonusState = bonusState;
     }
     if (other is DeadZone) {
       destroy = true;

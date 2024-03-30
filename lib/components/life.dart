@@ -39,8 +39,8 @@ class LifeManager extends Component {
     lives.removeLast();
   }
 
-  int getLifeAmount(){
-    return lives.length;
+  bool isNotEmpty(){
+    return lives.isNotEmpty ? true : false;
   }
 }
 

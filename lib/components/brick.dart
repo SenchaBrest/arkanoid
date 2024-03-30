@@ -4,11 +4,12 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/services.dart';
+import 'package:flame/components.dart';
+
 import '../forge2d_game_world.dart';
 import 'ball.dart';
 import 'bonus.dart';
-
-import 'package:flame/components.dart';
+import 'bullet.dart';
 
 enum BrickColor {
   gray,
@@ -17,6 +18,7 @@ enum BrickColor {
   blue,
   pink,
   green,
+  none,
 }
 
 class Brick extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
@@ -67,20 +69,25 @@ class Brick extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
 
   @override
   void beginContact(Object other, Contact contact) {
-    if (other is Ball) {
+    if (other is Ball || other is Bullet) {
       destroy = true;
 
-      double probability = 0.5;
-      double randomValue = Random().nextDouble();
+      if (other is Bullet) {
+        gameRef.remove(other);
+      }
+      if (gameRef.isBonusesFall) {
+        double probability = 0.5;
+        double randomValue = Random().nextDouble();
 
-      if (randomValue < probability) {
-        List<BonusColor> bonusColors = BonusColor.values;
-        int randomIndex = Random().nextInt(bonusColors.length);
-        Bonus(
-            size: size,
-            position: position,
-            bonusColor: bonusColors[randomIndex]
-        ).addToParent(parent!);
+        if (randomValue < probability) {
+          List<BonusState> bonusColors = BonusState.values;
+          int randomIndex = Random().nextInt(bonusColors.length - 1);
+          Bonus(
+              size: size,
+              position: position,
+              bonusState: bonusColors[randomIndex]
+          ).addToParent(parent!);
+        }
       }
     }
   }

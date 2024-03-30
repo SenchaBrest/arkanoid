@@ -1,45 +1,58 @@
-// Copyright (c) 2022 Razeware LLC
+import 'dart:async';
+import 'dart:ui' as ui;
 
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-
-// Notwithstanding the foregoing, you may not use, copy, modify, merge, publish,
-// distribute, sublicense, create a derivative work, and/or sell copies of the
-// Software in any work that is designed, intended, or marketed for pedagogical
-// or instructional purposes related to programming, coding, application
-// development, or information technology.  Permission for such use, copying,
-// modification, merger, publication, distribution, sublicensing, creation of
-// derivative works, or sale is expressly withheld.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-
+import 'package:flame/components.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flame/extensions.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'dart:ui' as ui;
 
 import '../forge2d_game_world.dart';
+import 'paddle.dart';
+import 'dead_zone.dart';
+import 'bonus.dart';
 
-class Ball extends BodyComponent<Forge2dGameWorld> {
+class BallManager extends Component {
+  List<Ball> balls = [];
   final Vector2 position;
+  final double radius;
+
+  BallManager({required this.position, required this.radius});
+
+  Future<void> createBall({position, radius, linearVelocity}) async {
+    final ball = Ball(
+      radius: radius ?? this.radius,
+      position: position ?? this.position,
+      linearVelocity: linearVelocity
+    );
+    await add(ball);
+    balls.add(ball);
+  }
+
+  void removeBall(Ball ballToRemove) {
+    final index = balls.indexOf(ballToRemove);
+    if (index != -1) {
+      balls.removeAt(index);
+      remove(ballToRemove);
+    }
+  }
+
+  void reset() {
+    for (final ball in [...balls]) {
+      if (ball.destroy) {
+        removeBall(ball);
+      }
+    }
+  }
+}
+
+class Ball extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
+  final Vector2 position;
+  final Vector2? linearVelocity;
   final double radius;
   ui.Image? image;
 
-  Ball({required this.position, required this.radius}) {
+  Ball({required this.position, required this.radius, this.linearVelocity}) {
     _loadImage();
   }
 
@@ -71,7 +84,8 @@ class Ball extends BodyComponent<Forge2dGameWorld> {
     final bodyDef = BodyDef()
       ..userData = this
       ..type = BodyType.dynamic
-      ..position = position;
+      ..position = position
+      ..linearVelocity = linearVelocity ?? Vector2(0.0, 0.0);
 
     final ball = world.createBody(bodyDef);
 
@@ -83,6 +97,32 @@ class Ball extends BodyComponent<Forge2dGameWorld> {
 
     ball.createFixture(fixtureDef);
     return ball;
+  }
+
+  var destroy = false;
+
+  @override
+  void beginContact(Object other, Contact contact) {
+    if (other is Paddle) {
+      if (gameRef.bonusState == BonusState.green) {
+        // body.linearVelocity = Vector2(0, 0);
+        // gameRef.isBallOnThePaddle = true;
+      }
+      body.position;
+      other.position;
+    }
+    if (other is DeadZone) {
+      destroy = true;
+      gameRef.gameState = GameState.lostTheBall;
+    }
+  }
+
+  void slowDown() {
+    body.applyLinearImpulse(-body.linearVelocity / 2);
+  }
+
+  void speedUp() {
+    body.applyLinearImpulse(body.linearVelocity);
   }
 
   void reset() {
