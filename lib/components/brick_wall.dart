@@ -46,8 +46,17 @@ class BrickWall extends Component with HasGameRef<Forge2dGameWorld> {
         remove(child);
       }
     }
-    // TODO if there is bonuses children is not empty
-    if (children.isEmpty) {
+
+    bool foundBrick = false;
+
+    for (final child in [...children]) {
+      if (child is Brick) {
+        foundBrick = true;
+        break;
+      }
+    }
+
+    if (!foundBrick) {
       gameRef.gameState = GameState.won;
     }
 

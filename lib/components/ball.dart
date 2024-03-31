@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
@@ -29,7 +30,7 @@ class BallManager extends Component {
     balls.add(ball);
   }
 
-  void removeBall(Ball ballToRemove) {
+  void _removeBall(Ball ballToRemove) {
     final index = balls.indexOf(ballToRemove);
     if (index != -1) {
       balls.removeAt(index);
@@ -37,12 +38,19 @@ class BallManager extends Component {
     }
   }
 
-  void reset() {
+  void removeBall() {
     for (final ball in [...balls]) {
       if (ball.destroy) {
-        removeBall(ball);
+        _removeBall(ball);
       }
     }
+  }
+
+  void reset() {
+    for (final ball in [...balls]) {
+      _removeBall(ball);
+    }
+    createBall();
   }
 }
 
@@ -51,6 +59,8 @@ class Ball extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   final Vector2? linearVelocity;
   final double radius;
   ui.Image? image;
+
+  final double speed = sqrt(2 * 20 * 20);
 
   Ball({required this.position, required this.radius, this.linearVelocity}) {
     _loadImage();
@@ -103,17 +113,42 @@ class Ball extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
 
   @override
   void beginContact(Object other, Contact contact) {
-    if (other is Paddle) {
-      if (gameRef.bonusState == BonusState.green) {
-        // body.linearVelocity = Vector2(0, 0);
-        // gameRef.isBallOnThePaddle = true;
-      }
-      body.position;
-      other.position;
-    }
+    // if (other is Paddle) {
+    //
+    // }
     if (other is DeadZone) {
       destroy = true;
       gameRef.gameState = GameState.lostTheBall;
+    }
+  }
+
+  @override
+  void endContact(Object other, [Contact? contact]) {
+    if (other is Paddle) {
+      // TODO: need more physical angles
+
+      // if u wanna normal physic just commented this if-else code
+      if (body.position.x > other.body.position.x) {
+        if (body.position.x + other.size.width * 2 / 6 > other.body.position.x) {
+          body.linearVelocity = Vector2(7, -3);
+        } else if (body.position.x + other.size.width * 1 / 6 > other.body.position.x) {
+          body.linearVelocity = Vector2(3, -3);
+        } else {
+          body.linearVelocity = Vector2(3, -7);
+        }
+      } else {
+        if (body.position.x + other.size.width * 2 / 6 < other.body.position.x) {
+          body.linearVelocity = Vector2(-3, -7);
+        } else if (body.position.x + other.size.width * 1 / 6 < other.body.position.x) {
+          body.linearVelocity = Vector2(-3, -3);
+        } else {
+          body.linearVelocity = Vector2(-7, -3);
+        }
+      }
+    }
+
+    if (!gameRef.isBallConnectedToThePaddle) {
+      body.linearVelocity *= (speed / body.linearVelocity.length);
     }
   }
 
@@ -123,11 +158,5 @@ class Ball extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
 
   void speedUp() {
     body.applyLinearImpulse(body.linearVelocity);
-  }
-
-  void reset() {
-    body.setTransform(position, angle);
-    body.angularVelocity = 0.0;
-    body.linearVelocity = Vector2.zero();
   }
 }

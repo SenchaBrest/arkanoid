@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flame/extensions.dart';
 import 'package:flame/game.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
-import 'package:flame/input.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 
 import 'components/arena.dart';
@@ -14,7 +14,6 @@ import 'components/dead_zone.dart';
 import 'components/life.dart';
 import 'components/bonus.dart';
 import 'components/bullet.dart';
-
 
 enum GameState {
   initializing,
@@ -42,8 +41,10 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
   late Bullet _bulletLeft;
   late Bullet _bulletRight;
 
-  bool isBallOnThePaddle = false; //TODO
+  bool isBallConnectedToThePaddle = false;
   bool isBonusesFall = true;
+
+  var jointDef = RevoluteJointDef();
 
   @override
   Future<void> onLoad() async {
@@ -66,7 +67,6 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
         size.x * paddingRatio.x,
         size.y * paddingRatio.y + size.y * 135 / 1060,
     );
-
     _brickWall = BrickWall(
       position: brickWallPosition,
       size: brickWallSize,
@@ -83,7 +83,6 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
       size.x / 2.0,
       size.y - deadZoneSize.height / 2.0,
     );
-
     _deadZone = DeadZone(
       size: deadZoneSize,
       position: deadZonePosition,
@@ -95,10 +94,8 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
       size.x / 2.0,
       size.y - deadZoneSize.height - paddleSize.height / 2.0,
     );
-
     _paddle = Paddle(
       size: paddleSize,
-      ground: _arena,
       position: paddlePosition,
       imagePath: 'assets/paddle/paddleOriginal.png',
     );
@@ -112,7 +109,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
       radius: 0.5 * size.x * 27 / 1033,
       position: ballPosition,
     );
-    _balls.createBall();
+    await _balls.createBall();
     await add(_balls);
 
     final lifeManagerSize = Size(
@@ -123,36 +120,14 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
       size.x * paddingRatio.x,
       size.y * paddingRatio.y + size.y * 999 / 1060,
     );
-
     _lives = LifeManager(
       position: lifeManagerPosition,
       size: lifeManagerSize,
     );
-    _lives.addLife();
-    _lives.addLife();
     await add(_lives);
 
     gameState = GameState.ready;
     overlays.add('PreGame');
-  }
-
-  Future<void> resetGame() async {
-    gameState = GameState.initializing;
-
-    _balls.createBall();
-    _paddle.reset();
-    await _brickWall.reset();
-
-    _lives.addLife();
-    _lives.addLife();
-
-    gameState = GameState.ready;
-    bonusState = BonusState.none;
-
-    overlays.remove(overlays.activeOverlays.first);
-    overlays.add('PreGame');
-
-    resumeEngine();
   }
 
   Future<void> applyBonus() async {
@@ -202,11 +177,11 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
               _balls.balls.first.body.linearVelocity.x
           );
 
-          _balls.createBall(
+          await _balls.createBall(
             position: ballPosition,
             linearVelocity: (v * cos(alpha) + u * sin(alpha)),
           );
-          _balls.createBall(
+          await _balls.createBall(
             position: ballPosition,
             linearVelocity: (v * cos(alpha) - u * sin(alpha)),
           );
@@ -255,14 +230,42 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
     add(_bulletRight);
   }
 
+  Future<void> resetGame() async {
+    gameState = GameState.initializing;
+
+    _balls.reset();
+    _paddle.reset();
+    await _brickWall.reset();
+    _lives.reset();
+
+    for (final child in [...children]) {
+      if (child is Bullet) {
+        for (final fixture in [...child.body.fixtures]) {
+          child.body.destroyFixture(fixture);
+        }
+        world.destroyBody(child.body);
+        remove(child);
+      }
+    }
+
+    gameState = GameState.ready;
+    bonusState = BonusState.none;
+
+    overlays.remove(overlays.activeOverlays.first);
+    overlays.add('PreGame');
+
+    resumeEngine();
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
 
     if (gameState == GameState.lostTheBall) {
-      _balls.reset();
+      _balls.removeBall();
       if (_balls.balls.length == 1) {
         isBonusesFall = true;
+        bonusState = BonusState.none;
       }
       if (_balls.balls.isEmpty) {
         pauseEngine();
@@ -275,12 +278,15 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
           gameState = GameState.ready;
           bonusState = BonusState.none;
 
-          overlays.add('InGame');
+          overlays.add('PreGame');
           resumeEngine();
         }
         else {
           gameState = GameState.lost;
         }
+      }
+      else {
+        gameState = GameState.running;
       }
     }
 
@@ -293,24 +299,41 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
     applyBonus();
   }
 
-  @override
-  void onTapDown(int pointerId, TapDownInfo info) {
-    if (gameState == GameState.running) {
-      // if (bonusState == BonusState.green) {
-      //   if (isBallOnThePaddle) {
-      //     _ball.body.applyLinearImpulse(Vector2(-10.0, -10.0));
-      //   }
-      // }
-      if (bonusState == BonusState.red) {
-        createBullets();
+  bool handleKeyboardEvents(KeyEvent event) {
+    if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.space) {
+        if (gameState == GameState.running) {
+          if (_paddle.body.joints.isNotEmpty) {
+            final joint = _paddle.body.joints.first;
+            world.destroyJoint(joint);
+            _balls.balls.last.body.applyLinearImpulse(Vector2(-15.0, -15.0));
+            isBallConnectedToThePaddle = false;
+          }
+
+          if (bonusState == BonusState.red) {
+            createBullets();
+          }
+        }
+        if (gameState == GameState.ready) {
+          overlays.remove(overlays.activeOverlays.first);
+          jointDef
+            ..initialize(_paddle.body, _balls.balls.last.body, _paddle.body.position)
+            ..enableLimit = true
+            ..lowerAngle = 0
+            ..upperAngle = 0;
+          world.createJoint(RevoluteJoint(jointDef));
+          isBallConnectedToThePaddle = true;
+          gameState = GameState.running;
+        }
       }
     }
+    return true;
+  }
 
-    if (gameState == GameState.ready) {
-      overlays.remove(overlays.activeOverlays.first);
-      _balls.balls.last.body.applyLinearImpulse(Vector2(-10.0, -10.0));
-      gameState = GameState.running;
-    }
-    super.onTapDown(pointerId, info);
+  @override
+  void onMount() {
+    super.onMount();
+
+    HardwareKeyboard.instance.addHandler(handleKeyboardEvents);
   }
 }

@@ -12,7 +12,6 @@ class MainGamePage extends StatefulWidget {
 }
 
 class MainGameState extends State<MainGamePage> {
-  final rwGreen = const Color.fromARGB(255, 21, 132, 67);
   final forge2dGameWorld = Forge2dGameWorld();
 
   @override
@@ -39,7 +38,7 @@ class MainGameState extends State<MainGamePage> {
                   game: forge2dGameWorld,
                   overlayBuilderMap: const {
                     'PreGame': OverlayBuilder.preGame,
-                    'InGame': OverlayBuilder.inGame,
+                    // 'InGame': OverlayBuilder.inGame,
                     'PostGame': OverlayBuilder.postGame,
                   },
                 ),

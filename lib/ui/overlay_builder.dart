@@ -5,49 +5,51 @@ class OverlayBuilder {
   OverlayBuilder._();
 
   static Widget preGame(BuildContext context, Forge2dGameWorld game) {
-    return const PreGameOverlay();
-  }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = game.size.x * (1033 - 2 * 43) / 1033;
+        final fontSize = width * 0.5;
 
-  static Widget inGame(BuildContext context, Forge2dGameWorld game) {
-    return const InGameOverlay();
+        return PreGameOverlay(fontSize: fontSize);
+      },
+    );
   }
 
   static Widget postGame(BuildContext context, Forge2dGameWorld game) {
     assert(game.gameState == GameState.lost || game.gameState == GameState.won);
 
     final message = game.gameState == GameState.won ? 'Winner!' : 'Game Over';
-    return PostGameOverlay(message: message, game: game);
-  }
-}
 
-class PreGameOverlay extends StatelessWidget {
-  const PreGameOverlay({super.key});
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
 
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        'Tap Paddle to Begin',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 24,
-        ),
-      ),
+        final fontSize = width * 0.1;
+
+        return PostGameOverlay(
+          message: message,
+          game: game,
+          fontSize: fontSize,
+        );
+      },
     );
   }
 }
 
-class InGameOverlay extends StatelessWidget {
-  const InGameOverlay({super.key});
+class PreGameOverlay extends StatelessWidget {
+  final double fontSize;
+
+  const PreGameOverlay({Key? key, required this.fontSize}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Text(
-        'Tap Paddle to Continue',
+        'Tap space to unlock the game',
         style: TextStyle(
           color: Colors.white,
-          fontSize: 24,
+          fontSize: fontSize,
+          fontFamily: 'PressStart2P',
         ),
       ),
     );
@@ -57,12 +59,14 @@ class InGameOverlay extends StatelessWidget {
 class PostGameOverlay extends StatelessWidget {
   final String message;
   final Forge2dGameWorld game;
+  final double fontSize;
 
   const PostGameOverlay({
-    super.key,
+    Key? key,
     required this.message,
     required this.game,
-  });
+    required this.fontSize,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -72,12 +76,13 @@ class PostGameOverlay extends StatelessWidget {
         children: [
           Text(
             message,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 24,
+              fontSize: fontSize,
+              fontFamily: 'PressStart2P',
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: fontSize * 0.5),
           _resetButton(context, game),
         ],
       ),
@@ -97,4 +102,5 @@ class PostGameOverlay extends StatelessWidget {
     );
   }
 }
+
 

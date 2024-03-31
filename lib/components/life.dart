@@ -9,7 +9,10 @@ class LifeManager extends Component {
   LifeManager({
     required this.position,
     required this.size,
-  });
+  }) {
+    addLife();
+    addLife();
+  }
 
   late Vector2 lifeSize = Vector2(
     64 / 961 * size.width,
@@ -41,6 +44,14 @@ class LifeManager extends Component {
 
   bool isNotEmpty(){
     return lives.isNotEmpty ? true : false;
+  }
+
+  void reset() {
+    while (lives.isNotEmpty) {
+      removeLife();
+    }
+    addLife();
+    addLife();
   }
 }
 

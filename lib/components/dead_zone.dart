@@ -3,7 +3,7 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../forge2d_game_world.dart';
 
-class DeadZone extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
+class DeadZone extends BodyComponent<Forge2dGameWorld> {
   final Size size;
   final Vector2 position;
 
