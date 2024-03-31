@@ -11,7 +11,6 @@ import 'package:flutter/services.dart' show rootBundle;
 import '../forge2d_game_world.dart';
 import 'paddle.dart';
 import 'dead_zone.dart';
-import 'bonus.dart';
 
 class BallManager extends Component {
   List<Ball> balls = [];

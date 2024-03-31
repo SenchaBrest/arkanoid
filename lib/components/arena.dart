@@ -6,7 +6,6 @@ import 'package:flutter/services.dart' show ByteData, rootBundle;
 
 import '../forge2d_game_world.dart';
 import 'bullet.dart';
-import 'paddle.dart';
 
 class Arena extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   Vector2? size;
