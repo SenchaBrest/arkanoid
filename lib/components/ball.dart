@@ -59,7 +59,10 @@ class Ball extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   final double radius;
   ui.Image? image;
 
-  final double speed = sqrt(2 * 20 * 20);
+  late double speed;
+  static const maxSpeed = 20.0;
+  static const minSpeed = 10.0;
+
 
   Ball({required this.position, required this.radius, this.linearVelocity}) {
     _loadImage();
@@ -119,6 +122,7 @@ class Ball extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
       destroy = true;
       gameRef.gameState = GameState.lostTheBall;
     }
+    speed = body.linearVelocity.length;
   }
 
   @override
@@ -151,11 +155,19 @@ class Ball extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
     }
   }
 
-  void slowDown() {
-    body.applyLinearImpulse(-body.linearVelocity / 2);
-  }
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (!gameRef.isBallConnectedToThePaddle) {
+      body.linearVelocity *= (1 + gameRef.accelerationRateForSpeed * dt);
 
-  void speedUp() {
-    body.applyLinearImpulse(body.linearVelocity);
+      if (body.linearVelocity.length > maxSpeed) {
+        body.linearVelocity = body.linearVelocity.normalized() * maxSpeed;
+      }
+
+      if (body.linearVelocity.length < minSpeed) {
+        body.linearVelocity = body.linearVelocity.normalized() * minSpeed;
+      }
+    }
   }
 }

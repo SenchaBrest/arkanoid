@@ -43,6 +43,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
 
   bool isBallConnectedToThePaddle = false;
   bool isBonusesFall = true;
+  double accelerationRateForSpeed = 0.0;
 
   var jointDef = RevoluteJointDef();
 
@@ -148,6 +149,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
         case BonusState.lightBlue:
           break;
         case BonusState.orange:
+          accelerationRateForSpeed = 0.5;
           break;
         case BonusState.pink:
           break;
@@ -187,6 +189,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
           );
           break;
         case BonusState.orange:
+          accelerationRateForSpeed = -0.5;
           break;
         case BonusState.pink:
 
@@ -248,6 +251,9 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
       }
     }
 
+    isBonusesFall = true;
+    accelerationRateForSpeed = 0.0;
+
     gameState = GameState.ready;
     bonusState = BonusState.none;
 
@@ -274,6 +280,9 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
           _paddle.reset();
           _balls.createBall();
           _brickWall.resetOnlyBonuses();
+
+          isBonusesFall = true;
+          accelerationRateForSpeed = 0.0;
 
           gameState = GameState.ready;
           bonusState = BonusState.none;
@@ -306,7 +315,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
           if (_paddle.body.joints.isNotEmpty) {
             final joint = _paddle.body.joints.first;
             world.destroyJoint(joint);
-            _balls.balls.last.body.applyLinearImpulse(Vector2(-15.0, -15.0));
+            _balls.balls.last.body.applyLinearImpulse(Vector2(-sqrt(200), -sqrt(200)));
             isBallConnectedToThePaddle = false;
           }
 
