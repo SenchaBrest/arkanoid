@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
 
+import 'package:arkanoid/components/bonus.dart';
 import 'package:flame/components.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/rendering.dart';
@@ -97,7 +98,8 @@ class Ball extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
       ..userData = this
       ..type = BodyType.dynamic
       ..position = position
-      ..linearVelocity = linearVelocity ?? Vector2(0.0, 0.0);
+      ..linearVelocity = linearVelocity ?? Vector2(0.0, 0.0)
+    ..angularVelocity = 0;
 
     final ball = world.createBody(bodyDef);
 
@@ -112,12 +114,16 @@ class Ball extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   }
 
   var destroy = false;
+  Object? otherObject;
 
   @override
   void beginContact(Object other, Contact contact) {
-    // if (other is Paddle) {
-    //
-    // }
+    if (other is Paddle) {
+      if (gameRef.bonusState == BonusState.green) {
+        body.linearVelocity = Vector2.zero();
+        otherObject = other;
+      }
+    }
     if (other is DeadZone) {
       destroy = true;
       gameRef.gameState = GameState.lostTheBall;
@@ -158,6 +164,19 @@ class Ball extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   @override
   void update(double dt) {
     super.update(dt);
+
+    if (otherObject is Paddle && gameRef.bonusState == BonusState.green && !gameRef.isBallConnectedToThePaddle) {
+      gameRef.jointDef
+        ..initialize((otherObject as Paddle).body, body, (otherObject as Paddle).body.position, Vector2(1, 0))
+        ..enableLimit = true
+        ..lowerTranslation = 0
+        ..upperTranslation = 0;
+      gameRef.world.createJoint(PrismaticJoint(gameRef.jointDef));
+      gameRef.isBallConnectedToThePaddle = true;
+
+      otherObject = null;
+    }
+
     if (!gameRef.isBallConnectedToThePaddle) {
       body.linearVelocity *= (1 + gameRef.accelerationRateForSpeed * dt);
 

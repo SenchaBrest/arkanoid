@@ -45,7 +45,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
   bool isBonusesFall = true;
   double accelerationRateForSpeed = 0.0;
 
-  var jointDef = RevoluteJointDef();
+  var jointDef = PrismaticJointDef();
 
   @override
   Future<void> onLoad() async {
@@ -165,6 +165,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
           bonusState = BonusState.none;
           break;
         case BonusState.green:
+          // TODO: когда мяч падает совсем рядом с платформой, он может быть захвачен ею
           break;
         case BonusState.lightBlue:
           isBonusesFall = false;
@@ -316,6 +317,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
             final joint = _paddle.body.joints.first;
             world.destroyJoint(joint);
             _balls.balls.last.body.applyLinearImpulse(Vector2(-sqrt(200), -sqrt(200)));
+            _balls.balls.last.body.angularVelocity = 0;
             isBallConnectedToThePaddle = false;
           }
 
@@ -326,11 +328,11 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
         if (gameState == GameState.ready) {
           overlays.remove(overlays.activeOverlays.first);
           jointDef
-            ..initialize(_paddle.body, _balls.balls.last.body, _paddle.body.position)
+            ..initialize(_paddle.body, _balls.balls.last.body, _paddle.body.position, Vector2(1, 0))
             ..enableLimit = true
-            ..lowerAngle = 0
-            ..upperAngle = 0;
-          world.createJoint(RevoluteJoint(jointDef));
+            ..lowerTranslation = 0
+            ..upperTranslation = 0;
+          world.createJoint(PrismaticJoint(jointDef));
           isBallConnectedToThePaddle = true;
           gameState = GameState.running;
         }
