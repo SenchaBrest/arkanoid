@@ -1,14 +1,18 @@
 import 'dart:ui';
 import 'package:flame/components.dart';
 
+
+
 class LifeManager extends Component {
   List<Life> lives = [];
   final Vector2 position;
   final Size size;
+  final String imagePath;
 
   LifeManager({
     required this.position,
     required this.size,
+    required this.imagePath,
   }) {
     addLife();
     addLife();
@@ -32,7 +36,7 @@ class LifeManager extends Component {
           Vector2(lives.length * (64 / 961 + 22 / 961) * size.width, 0);
     }
 
-    final life = Life(position: lifePosition, size: lifeSize);
+    final life = Life(position: lifePosition, size: lifeSize, imagePath: imagePath);
     add(life);
     lives.add(life);
   }
@@ -56,7 +60,9 @@ class LifeManager extends Component {
 }
 
 class Life extends SpriteComponent with HasGameRef {
-  Life({required Vector2 position, required Vector2 size})
+  final String imagePath;
+
+  Life({required Vector2 position, required Vector2 size, required this.imagePath})
       : super(
     size: size,
     position: position,
@@ -64,6 +70,6 @@ class Life extends SpriteComponent with HasGameRef {
 
   @override
   Future<void> onLoad() async {
-    sprite = await gameRef.loadSprite('life.png');
+    sprite = await gameRef.loadSprite(imagePath);
   }
 }

@@ -3,13 +3,15 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
-import 'package:flutter/services.dart';
 import 'package:flame/components.dart';
 
 import '../forge2d_game_world.dart';
+import '../utils/image_loader.dart';
 import 'ball.dart';
 import 'bonus.dart';
 import 'bullet.dart';
+
+
 
 enum BrickColor {
   gray,
@@ -25,6 +27,7 @@ class Brick extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   final Size size;
   final Vector2 position;
   final BrickColor brickColor;
+  late final String imagePath;
   ui.Image? image;
 
   Brick({
@@ -33,14 +36,13 @@ class Brick extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
     required this.brickColor,
 
   }) {
-    _loadImage();
+    imagePath = 'assets/images/bricks/${brickColor.index}.png';
   }
 
-  Future<void> _loadImage() async {
-    final data = await rootBundle.load('assets/bricks/${brickColor.index}.png');
-    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
-    final frame = await codec.getNextFrame();
-    image = frame.image;
+  @override
+  Future<void> onLoad() async {
+    image = await ImageLoader.loadImage(imagePath);
+    return super.onLoad();
   }
 
   @override
@@ -85,7 +87,7 @@ class Brick extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
           Bonus(
               size: size,
               position: position,
-              bonusState: bonusColors[randomIndex]
+              bonusState: bonusColors[5]
           ).addToParent(parent!);
         }
       }

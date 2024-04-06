@@ -1,17 +1,38 @@
 import 'dart:ui';
 import 'dart:ui' as ui;
 
+import 'paddle.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
-import 'package:flutter/services.dart' show ByteData, rootBundle;
 
 import '../forge2d_game_world.dart';
+import '../utils/image_loader.dart';
+import 'bonus.dart';
 import 'bullet.dart';
+
+
 
 class Arena extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   Vector2? size;
-  ui.Image? image;
+  final String imageArenaPath;
+  final String gifExitPath;
+  final String imageExitPath;
+  
+  ui.Image? imageArena;
 
-  Arena({this.size}) {
+  List<ui.Image> frames = [];
+  int currentFrameIndex = 0;
+  double timeSinceLastFrame = 0.0;
+  double frameDuration = 0.005;
+
+  ui.Image? imageExit;
+
+
+  Arena({
+    this.size,
+    required this.imageArenaPath,
+    required this.gifExitPath,
+    required this.imageExitPath
+  }) {
     assert(size == null || size!.x >= 1.0 && size!.y >= 1.0);
   }
 
@@ -20,23 +41,84 @@ class Arena extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   @override
   Future<void> onLoad() async {
     arenaSize = size ?? gameRef.size;
-    await loadImage();
+
+    imageArena = await ImageLoader.loadImage(imageArenaPath);
+    frames = await ImageLoader.loadGif(gifExitPath);
+    imageExit = await ImageLoader.loadImage(imageExitPath);
+
     return super.onLoad();
   }
 
-  Future<void> loadImage() async {
-    final ByteData data = await rootBundle.load('assets/arena.png');
-    final ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
-    final ui.FrameInfo frameInfo = await codec.getNextFrame();
-    image = frameInfo.image;
+  void renderExtraImage(Canvas canvas, image, positionX, positionY, sizeX, sizeY) {
+    if (image != null) {
+      final Rect srcRect = Rect.fromLTWH(0, 0, image!.width.toDouble(), image!.height.toDouble());
+      final Rect destRect = Rect.fromLTWH(
+        positionX,
+        positionY,
+        sizeX,
+        sizeY,
+      );
+      canvas.drawImageRect(image!, srcRect, destRect, Paint());
+    }
+  }
+
+  void drawGifForPinkBonus(Canvas canvas) {
+    if (frames.isNotEmpty) {
+      final Rect srcRect = Rect.fromLTWH(
+        0,
+        0,
+        frames[currentFrameIndex].width.toDouble(),
+        frames[currentFrameIndex].height.toDouble(),
+      );
+      final Rect destRect = Rect.fromLTWH(
+        arenaSize.x * ((1033 - 43) / 1033),
+        arenaSize.y * ((1060 - 128) / 1060),
+        arenaSize.x * 43 / 1033,
+        arenaSize.y * 128 / 1060,
+      );
+      canvas.drawImageRect(
+        frames[currentFrameIndex],
+        srcRect,
+        destRect,
+        Paint(),
+      );
+    }
   }
 
   @override
+  void update(double dt) {
+    super.update(dt);
+    if (frames.isNotEmpty) {
+      timeSinceLastFrame += dt;
+      if (timeSinceLastFrame >= frameDuration) {
+        timeSinceLastFrame = 0.0;
+        currentFrameIndex = (currentFrameIndex + 1) % frames.length;
+      }
+    }
+  }
+
+  bool showExit = false;
+
+  @override
   void render(Canvas canvas) {
-    if (image != null) {
+    if (imageArena != null) {
       final Rect destRect = Rect.fromLTWH(0, 0, arenaSize.x, arenaSize.y);
-      final Rect srcRect = Rect.fromLTWH(0, 0, image!.width.toDouble(), image!.height.toDouble());
-      canvas.drawImageRect(image!, srcRect, destRect, Paint());
+      final Rect srcRect = Rect.fromLTWH(0, 0, imageArena!.width.toDouble(), imageArena!.height.toDouble());
+      canvas.drawImageRect(imageArena!, srcRect, destRect, Paint());
+    }
+    if (gameRef.bonusState == BonusState.pink) {
+      if (!showExit) {
+        drawGifForPinkBonus(canvas);
+      } else {
+        renderExtraImage(
+          canvas,
+          imageExit,
+          arenaSize.x * ((1033 - 43) / 1033),
+          arenaSize.y * ((1060 - 128) / 1060),
+          arenaSize.x * 43 / 1033,
+          arenaSize.y * 128 / 1060,
+        );
+      }
     }
   }
 
@@ -45,10 +127,11 @@ class Arena extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
     if (other is Bullet) {
       gameRef.remove(other);
     }
-    // if (other is Paddle) {
-    //   other.body.linearVelocity = Vector2.zero();
-    //   print(0);
-    // }
+    if (other is Paddle) {
+      if (gameRef.bonusState == BonusState.pink && other.body.position.x > arenaSize.x / 2) {
+        showExit = true;
+      }
+    }
   }
 
   @override

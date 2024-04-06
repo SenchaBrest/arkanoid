@@ -2,29 +2,30 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
-import 'package:flutter/services.dart';
 import 'package:flame/components.dart';
 
 import '../forge2d_game_world.dart';
+import '../utils/image_loader.dart';
+
+
 
 class Bullet extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   final Size size;
   final Vector2 position;
+  late String imagePath;
   ui.Image? image;
+
 
   Bullet({
     required this.size,
     required this.position,
-    required imagePath,
-  }) {
-    _loadImage(imagePath);
-  }
+    required this.imagePath,
+  });
 
-  Future<void> _loadImage(String imagePath) async {
-    final data = await rootBundle.load(imagePath);
-    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
-    final frame = await codec.getNextFrame();
-    image = frame.image;
+  @override
+  Future<void> onLoad() async {
+    super.onLoad();
+    image = await ImageLoader.loadImage(imagePath);
   }
 
   @override
@@ -55,7 +56,8 @@ class Bullet extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
       ..userData = this
       ..type = BodyType.dynamic
       ..position = position
-      ..linearVelocity = Vector2(0, -100);
+      ..linearVelocity = Vector2(0, -100)
+      ..bullet = true;
 
     final bulletBody = world.createBody(bodyDef);
 

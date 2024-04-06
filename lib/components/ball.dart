@@ -1,30 +1,33 @@
 import 'dart:async';
-import 'dart:math';
 import 'dart:ui' as ui;
 
-import 'package:arkanoid/components/bonus.dart';
 import 'package:flame/components.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flame/extensions.dart';
-import 'package:flutter/services.dart' show rootBundle;
 
 import '../forge2d_game_world.dart';
+import '../utils/image_loader.dart';
 import 'paddle.dart';
 import 'dead_zone.dart';
+import 'bonus.dart';
+
+
 
 class BallManager extends Component {
   List<Ball> balls = [];
   final Vector2 position;
   final double radius;
+  final String imagePath;
 
-  BallManager({required this.position, required this.radius});
+  BallManager({required this.position, required this.radius, required this.imagePath});
 
   Future<void> createBall({position, radius, linearVelocity}) async {
     final ball = Ball(
       radius: radius ?? this.radius,
       position: position ?? this.position,
-      linearVelocity: linearVelocity
+      linearVelocity: linearVelocity,
+      imagePath: imagePath,
     );
     await add(ball);
     balls.add(ball);
@@ -54,26 +57,32 @@ class BallManager extends Component {
   }
 }
 
-class Ball extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
+
+
+class Ball extends BodyComponent<Forge2dGameWorld> with ContactCallbacks, ImageLoader{
   final Vector2 position;
   final Vector2? linearVelocity;
   final double radius;
   ui.Image? image;
+  String imagePath;
 
   late double speed;
   static const maxSpeed = 20.0;
   static const minSpeed = 10.0;
 
+  List<ui.Image?> imageList = [null];
 
-  Ball({required this.position, required this.radius, this.linearVelocity}) {
-    _loadImage();
-  }
+  Ball({
+    required this.position,
+    required this.radius,
+    this.linearVelocity,
+    required this.imagePath
+  });
 
-  Future<void> _loadImage() async {
-    final data = await rootBundle.load('assets/ball_image.png');
-    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
-    final frame = await codec.getNextFrame();
-    image = frame.image;
+  @override
+  Future<void> onLoad() async {
+    super.onLoad();
+    image = await ImageLoader.loadImage(imagePath);
   }
 
   @override
@@ -166,6 +175,15 @@ class Ball extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
     super.update(dt);
 
     if (otherObject is Paddle && gameRef.bonusState == BonusState.green && !gameRef.isBallConnectedToThePaddle) {
+      if (body.position.x - (otherObject as Paddle).body.position.x > (otherObject as Paddle).size.width / 2 - radius) {
+        body.position.x = (otherObject as Paddle).body.position.x + (otherObject as Paddle).size.width / 2 - radius;
+        body.position.y = position.y - radius;
+      }
+      else if ((otherObject as Paddle).body.position.x - body.position.x > (otherObject as Paddle).size.width / 2 - radius) {
+        body.position.x = (otherObject as Paddle).body.position.x - (otherObject as Paddle).size.width / 2 + radius;
+        body.position.y = position.y  - radius;
+      }
+
       gameRef.jointDef
         ..initialize((otherObject as Paddle).body, body, (otherObject as Paddle).body.position, Vector2(1, 0))
         ..enableLimit = true

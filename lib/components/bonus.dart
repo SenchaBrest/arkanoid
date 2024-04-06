@@ -1,12 +1,14 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flame/components.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../forge2d_game_world.dart';
+import '../utils/image_loader.dart';
 import 'dead_zone.dart';
 import 'paddle.dart';
+
+
 
 enum BonusState {
   blue,
@@ -23,6 +25,7 @@ class Bonus extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   final Size size;
   final Vector2 position;
   final BonusState bonusState;
+  late final String gifPath;
   List<ui.Image> frames = [];
   int currentFrameIndex = 0;
   double timeSinceLastFrame = 0.0;
@@ -33,16 +36,13 @@ class Bonus extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
     required this.position,
     required this.bonusState,
   }) {
-    _loadImage();
+    gifPath = 'assets/animations/bonuses/${bonusState.index}.gif';
   }
 
-  void _loadImage() async {
-    final data = await rootBundle.load('assets/bonuses/${bonusState.index}.gif');
-    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
-    for (int i = 0; i < codec.frameCount; i++) {
-      final frame = await codec.getNextFrame();
-      frames.add(frame.image);
-    }
+  @override
+  Future<void> onLoad() async {
+    frames = await ImageLoader.loadGif(gifPath);
+    return super.onLoad();
   }
 
   @override

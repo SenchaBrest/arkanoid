@@ -6,7 +6,11 @@ import 'package:flutter/rendering.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../forge2d_game_world.dart';
+import '../utils/image_loader.dart';
 import 'arena.dart';
+import 'bonus.dart';
+
+
 
 class Paddle extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   Size size;
@@ -27,10 +31,7 @@ class Paddle extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   }
 
   Future<void> _loadImage(String imagePath) async {
-    final data = await rootBundle.load(imagePath);
-    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
-    final frame = await codec.getNextFrame();
-    image = frame.image;
+    image = await ImageLoader.loadImage(imagePath);
   }
 
   @override
@@ -72,12 +73,14 @@ class Paddle extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
     paddleBody.createFixture(FixtureDef(shape)
       ..density = 100.0
       ..friction = 0.0
-      ..restitution = 1.0);
+      ..restitution = 1.0
+      ..isSensor = false,
+    );
 
     return paddleBody;
   }
 
-  void updateBody({required Size newSize, required String imagePath}) {
+  void updateBody({required Size newSize, required String imagePath, required bool isSensor}) {
     size = newSize;
 
     final shape = PolygonShape()
@@ -91,7 +94,9 @@ class Paddle extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
     body.createFixture(FixtureDef(shape)
       ..density = 100.0
       ..friction = 0.0
-      ..restitution = 1.0);
+      ..restitution = 1.0
+      ..isSensor = isSensor
+    );
     _loadImage(imagePath);
   }
 
@@ -112,7 +117,7 @@ class Paddle extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
           }
         }
       }
-      if (event is KeyUpEvent) {
+      if (event is KeyUpEvent && !gameRef.toTheNextLevel) {
         if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
           movingLeft = false;
         }
@@ -131,13 +136,22 @@ class Paddle extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   @override
   void beginContact(Object other, Contact contact) {
     if (other is Arena) {
-      body.linearVelocity = Vector2.zero();
-      if (body.position.x < gameRef.size.x / 2) {
-        permissionToMovingLeft = false;
-      }
-      else {
-        body.clearForces();
-        permissionToMovingRight = false;
+      if (!gameRef.toTheNextLevel) {
+        if (gameRef.bonusState == BonusState.pink &&
+            body.position.x > gameRef.size.x / 2) {
+          permissionToMovingLeft = false;
+          permissionToMovingRight = false;
+          gameRef.makePaddleSensorAndDestroyBall = true;
+        }
+        else {
+          body.linearVelocity = Vector2.zero();
+        }
+        if (body.position.x < gameRef.size.x / 2) {
+          permissionToMovingLeft = false;
+        }
+        else {
+          permissionToMovingRight = false;
+        }
       }
     }
   }
@@ -150,10 +164,17 @@ class Paddle extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   }
 
   void reset() {
+    updateBody(
+        newSize: size,
+        imagePath: 'assets/images/paddle/paddleOriginal.png',
+        isSensor: false,
+    );
     body.setTransform(position, angle);
     body.angularVelocity = 0.0;
     body.linearVelocity = Vector2.zero();
     permissionToMovingLeft = true;
     permissionToMovingRight = true;
+    movingLeft = false;
+    movingRight = false;
   }
 }

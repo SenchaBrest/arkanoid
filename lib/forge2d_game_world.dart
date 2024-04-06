@@ -43,6 +43,8 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
 
   bool isBallConnectedToThePaddle = false;
   bool isBonusesFall = true;
+  bool makePaddleSensorAndDestroyBall = false;
+  bool toTheNextLevel = false;
   double accelerationRateForSpeed = 0.0;
 
   var jointDef = PrismaticJointDef();
@@ -57,7 +59,11 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
     paddingRatio.x = 43 / 1033;
     paddingRatio.y = 44 / 1060;
 
-    _arena = Arena();
+    _arena = Arena(
+      imageArenaPath: 'assets/images/arena.png',
+      gifExitPath: 'assets/animations/exit.gif',
+      imageExitPath: 'assets/images/exit.png',
+    );
     await add(_arena);
 
     final brickWallSize = Size(
@@ -98,7 +104,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
     _paddle = Paddle(
       size: paddleSize,
       position: paddlePosition,
-      imagePath: 'assets/paddle/paddleOriginal.png',
+      imagePath: 'assets/images/paddle/paddleOriginal.png',
     );
     await add(_paddle);
 
@@ -109,6 +115,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
     _balls = BallManager(
       radius: 0.5 * size.x * 27 / 1033,
       position: ballPosition,
+      imagePath: 'assets/images/ball.png',
     );
     await _balls.createBall();
     await add(_balls);
@@ -124,6 +131,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
     _lives = LifeManager(
       position: lifeManagerPosition,
       size: lifeManagerSize,
+      imagePath: 'paddle/paddleLife.png',
     );
     await add(_lives);
 
@@ -135,51 +143,49 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
     if (bonusState != _previousBonusState) {
       switch (_previousBonusState) {
         case BonusState.blue:
-        case BonusState.red:
           final paddleSize = Size(size.x * 135 / 1033, size.y * 33 / 1060);
           _paddle.updateBody(
             newSize: paddleSize,
-            imagePath: 'assets/paddle/paddleOriginal.png',
+            imagePath: 'assets/images/paddle/paddleOriginal.png',
+            isSensor: false,
           );
           break;
-        case BonusState.gray:
-          break;
-        case BonusState.green:
-          break;
-        case BonusState.lightBlue:
-          break;
+        case BonusState.gray: break;
+        case BonusState.green: break;
+        case BonusState.lightBlue: break;
         case BonusState.orange:
           accelerationRateForSpeed = 0.5;
           break;
-        case BonusState.pink:
+        case BonusState.pink: break;
+        case BonusState.red:
+          final paddleSize = Size(size.x * 135 / 1033, size.y * 33 / 1060);
+          _paddle.updateBody(
+              newSize: paddleSize,
+              imagePath: 'assets/images/paddle/paddleOriginal.png',
+              isSensor: false,
+          );
           break;
-        case BonusState.none:
-          break;
+        case BonusState.none: break;
       }
 
       switch (bonusState) {
-        case BonusState.blue:
-          break;
+        case BonusState.blue: break;
         case BonusState.gray:
           _lives.addLife();
           bonusState = BonusState.none;
           break;
         case BonusState.green:
-          // TODO: когда мяч падает совсем рядом с платформой, он может быть захвачен ею
           break;
         case BonusState.lightBlue:
           isBonusesFall = false;
           _brickWall.resetOnlyBonuses();
-
           final ballPosition = _balls.balls.first.body.position;
-
           const alpha = 0.5;
           var v = _balls.balls.first.body.linearVelocity;
           var u = Vector2(
               -_balls.balls.first.body.linearVelocity.y,
               _balls.balls.first.body.linearVelocity.x
           );
-
           await _balls.createBall(
             position: ballPosition,
             linearVelocity: (v * cos(alpha) + u * sin(alpha)),
@@ -192,21 +198,47 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
         case BonusState.orange:
           accelerationRateForSpeed = -0.5;
           break;
-        case BonusState.pink:
-
-          break;
+        case BonusState.pink: break;
         case BonusState.red:
           final paddleSize = Size(size.x * 135 / 1033, size.y * 33 / 1060);
           _paddle.updateBody(
             newSize: paddleSize,
-            imagePath: 'assets/paddle/paddleWithLaser.png',
+            imagePath: 'assets/images/paddle/paddleWithLaser.png',
+            isSensor: false,
           );
           break;
-        case BonusState.none:
-          break;
+        case BonusState.none: break;
       }
-
       _previousBonusState = bonusState;
+    } else {
+      switch (bonusState) {
+        case BonusState.blue: break;
+        case BonusState.gray: break;
+        case BonusState.green: break;
+        case BonusState.lightBlue: break;
+        case BonusState.orange: break;
+        case BonusState.pink:
+          if (_paddle.body.position.x - _paddle.size.width / 2 > size.x) {
+            gameState = GameState.won;
+          }
+          if (makePaddleSensorAndDestroyBall) {
+            final paddleSize = Size(size.x * 135 / 1033, size.y * 33 / 1060);
+            _paddle.updateBody(
+                newSize: paddleSize,
+                imagePath: 'assets/images/paddle/paddleOriginal.png',
+                isSensor: true,
+            );
+            _balls.balls.last.destroy = true;
+            _balls.removeBall();
+            _brickWall.resetOnlyBonuses();
+            _paddle.body.linearVelocity = Vector2(5, 0);
+            makePaddleSensorAndDestroyBall = false;
+            toTheNextLevel = true;
+          }
+          break;
+        case BonusState.red: break;
+        case BonusState.none: break;
+      }
     }
   }
 
@@ -218,7 +250,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
     _bulletLeft = Bullet(
       size: bulletLeftSize,
       position: bulletLeftPosition,
-      imagePath: 'assets/paddle/bullet.png',
+      imagePath: 'assets/images/bullet.png',
     );
     add(_bulletLeft);
 
@@ -229,7 +261,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
     _bulletRight = Bullet(
       size: bulletRightSize,
       position: bulletRightPosition,
-      imagePath: 'assets/paddle/bullet.png',
+      imagePath: 'assets/images/bullet.png',
     );
     add(_bulletRight);
   }
@@ -254,6 +286,9 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
 
     isBonusesFall = true;
     accelerationRateForSpeed = 0.0;
+    makePaddleSensorAndDestroyBall = false;
+    toTheNextLevel = false;
+    _arena.showExit = false;
 
     gameState = GameState.ready;
     bonusState = BonusState.none;
@@ -284,6 +319,9 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
 
           isBonusesFall = true;
           accelerationRateForSpeed = 0.0;
+          makePaddleSensorAndDestroyBall = false;
+          toTheNextLevel = false;
+          _arena.showExit = false;
 
           gameState = GameState.ready;
           bonusState = BonusState.none;

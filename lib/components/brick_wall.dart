@@ -5,6 +5,8 @@ import '../forge2d_game_world.dart';
 import 'brick.dart';
 import 'bonus.dart';
 
+
+
 class BrickWall extends Component with HasGameRef<Forge2dGameWorld> {
   final Vector2 position;
   final Size? size;
