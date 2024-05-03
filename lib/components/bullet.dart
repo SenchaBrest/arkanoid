@@ -6,6 +6,57 @@ import 'package:flame/components.dart';
 
 import '../forge2d_game_world.dart';
 import '../utils/image_loader.dart';
+import 'bonus.dart';
+
+
+
+class BulletManager extends Component {
+  void createBullets({
+    required Size arenaSize,
+    required paddlePosition,
+    required Size paddleSize,
+    required String imagePath,
+  }) {
+    final bulletLeftSize = Size(arenaSize.width * 5 / 1033, arenaSize.height * 22 / 1060);
+    final bulletLeftPosition = paddlePosition - Vector2(43 / 135 * paddleSize.width, 1);
+
+    add(
+        Bullet(
+          size: bulletLeftSize,
+          position: bulletLeftPosition,
+          imagePath: imagePath,
+        ));
+
+    final bulletRightSize = Size(arenaSize.width * 5 / 1033, arenaSize.height * 22 / 1060);
+    final bulletRightPosition = paddlePosition + Vector2(43 / 135 * paddleSize.width, -1);
+
+    add(
+        Bullet(
+          size: bulletRightSize,
+          position: bulletRightPosition,
+          imagePath: imagePath,
+        ));
+  }
+
+  void reset() {
+    for (final child in [...children]) {
+      if (child is Bullet) {
+        remove(child);
+      }
+    }
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    for (final child in [...children]) {
+      if (child is Bullet && child.destroy) {
+        remove(child);
+      }
+    }
+  }
+}
 
 
 
@@ -77,5 +128,13 @@ class Bullet extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
     );
 
     return bulletBody;
+  }
+
+  bool destroy = false;
+  @override
+  void beginContact(Object other, Contact contact) {
+    if (other is! Bonus) {
+      destroy = true;
+    }
   }
 }

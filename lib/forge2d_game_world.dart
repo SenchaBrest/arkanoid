@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flame/extensions.dart';
 import 'package:flame/game.dart';
+import 'package:flame_audio/flame_audio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
@@ -14,6 +16,9 @@ import 'components/dead_zone.dart';
 import 'components/life.dart';
 import 'components/bonus.dart';
 import 'components/bullet.dart';
+import 'components/score.dart';
+
+
 
 enum GameState {
   initializing,
@@ -32,14 +37,35 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
   BonusState bonusState = BonusState.none;
   BonusState _previousBonusState = BonusState.none;
 
+  late final Score _score;
+  late final Size _scoreSize;
+  late final Vector2 _scorePosition;
+
   late final Arena _arena;
-  late final BallManager _balls;
+  late final Size _arenaSize;
+  late final Vector2 _arenaPosition;
+
   late final BrickWall _brickWall;
+  late final Size _brickWallSize;
+  late final Vector2 _brickWallPosition;
+
   late final DeadZone _deadZone;
-  late final Paddle _paddle;
+  late final Size _deadZoneSize;
+  late final Vector2 _deadZonePosition;
+
   late final LifeManager _lives;
-  late Bullet _bulletLeft;
-  late Bullet _bulletRight;
+  late final Size _livesSize;
+  late final Vector2 _livesPosition;
+
+  late final Paddle _paddle;
+  late final Size _paddleSize;
+  late final Vector2 _paddlePosition;
+
+  late final BallManager _balls;
+  late final double _ballSize;
+  late final Vector2 _ballPosition;
+
+  late BulletManager _bullets;
 
   bool isBallConnectedToThePaddle = false;
   bool isBonusesFall = true;
@@ -49,9 +75,24 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
 
   var jointDef = PrismaticJointDef();
 
+  late int highScore;
+  int scoreValue = 0;
+
   @override
   Future<void> onLoad() async {
+    await _loadHighScore();
     await _initializeGame();
+    FlameAudio.bgm.play('theme.ogg');
+  }
+
+  Future<void> _loadHighScore() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    highScore = prefs.getInt('highScore') ?? 0;
+  }
+
+  Future<void> _saveHighScore() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('highScore', highScore);
   }
 
   Future<void> _initializeGame() async {
@@ -59,81 +100,114 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
     paddingRatio.x = 43 / 1033;
     paddingRatio.y = 44 / 1060;
 
+    _scoreSize = Size(
+      size.x,
+      size.y * 0.05,
+    );
+    _scorePosition = Vector2(
+        0,
+        0
+    );
+    _score = Score(
+      size: _scoreSize,
+      position: _scorePosition,
+      score: 0,
+      highScore: highScore
+    );
+    await add(_score);
+
+    _arenaSize = Size(
+      size.x,
+      size.y - _scoreSize.height,
+    );
+    _arenaPosition = Vector2(
+        0,
+        _scoreSize.height
+    );
     _arena = Arena(
+      size: _arenaSize,
+      position: _arenaPosition,
       imageArenaPath: 'assets/images/arena.png',
       gifExitPath: 'assets/animations/exit.gif',
       imageExitPath: 'assets/images/exit.png',
     );
     await add(_arena);
 
-    final brickWallSize = Size(
-        size.x * (1 - 2 * paddingRatio.x),
-        size.y * 255 / 1060,
+    _brickWallSize = Size(
+      _arenaSize.width * (1 - 2 * paddingRatio.x),
+      _arenaSize.height * 255 / 1060,
     );
-    final brickWallPosition = Vector2(
-        size.x * paddingRatio.x,
-        size.y * paddingRatio.y + size.y * 135 / 1060,
+    _brickWallPosition = Vector2(
+      _arenaSize.width * paddingRatio.x,
+      _arenaPosition.y + _arenaSize.height * paddingRatio.y + _arenaSize.height * 135 / 1060,
     );
     _brickWall = BrickWall(
-      position: brickWallPosition,
-      size: brickWallSize,
+      position: _brickWallPosition,
+      size: _brickWallSize,
       rows: 6,
       columns: 11,
     );
     await add(_brickWall);
 
-    final deadZoneSize = Size(
-        size.x * (1 - 2 * paddingRatio.x),
-        size.y * (1 - paddingRatio.y - 940 / 1060)
+    _deadZoneSize = Size(
+        _arenaSize.width * (1 - 2 * paddingRatio.x),
+        _arenaSize.height * (1 - paddingRatio.y - 940 / 1060)
     );
-    final deadZonePosition = Vector2(
-      size.x / 2.0,
-      size.y - deadZoneSize.height / 2.0,
+    _deadZonePosition = Vector2(
+      _arenaSize.width / 2.0,
+      _arenaPosition.y + _arenaSize.height - _deadZoneSize.height / 2.0,
     );
     _deadZone = DeadZone(
-      size: deadZoneSize,
-      position: deadZonePosition,
+      size: _deadZoneSize,
+      position: _deadZonePosition,
     );
     await add(_deadZone);
 
-    final paddleSize = Size(size.x * 135 / 1033, size.y * 33 / 1060);
-    final paddlePosition = Vector2(
-      size.x / 2.0,
-      size.y - deadZoneSize.height - paddleSize.height / 2.0,
+    _paddleSize = Size(
+        _arenaSize.width * 135 / 1033,
+        _arenaSize.height * 33 / 1060
+    );
+    _paddlePosition = Vector2(
+      _arenaSize.width / 2.0,
+      _arenaPosition.y + _arenaSize.height - _deadZoneSize.height - _paddleSize.height / 2.0,
     );
     _paddle = Paddle(
-      size: paddleSize,
-      position: paddlePosition,
+      size: _paddleSize,
+      position: _paddlePosition,
       imagePath: 'assets/images/paddle/paddleOriginal.png',
     );
     await add(_paddle);
 
-    final ballPosition = Vector2(
-        size.x / 2.0,
-        size.y - deadZoneSize.height - paddleSize.height,
+    _ballSize = 0.5 * _arenaSize.width * 27 / 1033;
+    _ballPosition = Vector2(
+      _arenaSize.width / 2.0,
+      _arenaPosition.y + _arenaSize.height - _deadZoneSize.height - _paddleSize.height,
     );
     _balls = BallManager(
-      radius: 0.5 * size.x * 27 / 1033,
-      position: ballPosition,
+      radius: _ballSize,
+      position: _ballPosition,
       imagePath: 'assets/images/ball.png',
     );
     await _balls.createBall();
     await add(_balls);
 
-    final lifeManagerSize = Size(
-      size.x * (1 - 2 * paddingRatio.x),
-      size.y * 16 / 1060,
+    _livesSize = Size(
+      _arenaSize.width * (1 - 2 * paddingRatio.x),
+      _arenaSize.height * 16 / 1060,
     );
-    final lifeManagerPosition = Vector2(
-      size.x * paddingRatio.x,
-      size.y * paddingRatio.y + size.y * 999 / 1060,
+    _livesPosition = Vector2(
+      _arenaSize.width * paddingRatio.x,
+      _arenaPosition.y + _arenaSize.height * paddingRatio.y + _arenaSize.height * 999 / 1060,
     );
     _lives = LifeManager(
-      position: lifeManagerPosition,
-      size: lifeManagerSize,
+      position: _livesPosition,
+      size: _livesSize,
       imagePath: 'paddle/paddleLife.png',
     );
     await add(_lives);
+
+    _bullets = BulletManager();
+    await add(_bullets);
 
     gameState = GameState.ready;
     overlays.add('PreGame');
@@ -169,7 +243,14 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
       }
 
       switch (bonusState) {
-        case BonusState.blue: break;
+        case BonusState.blue:
+          final paddleSize = Size(size.x * 200 / 1033, size.y * 33 / 1060);
+          _paddle.updateBody(
+            newSize: paddleSize,
+            imagePath: 'assets/images/paddle/paddleLong.png',
+            isSensor: false,
+          );
+          break;
         case BonusState.gray:
           _lives.addLife();
           bonusState = BonusState.none;
@@ -190,10 +271,12 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
             position: ballPosition,
             linearVelocity: (v * cos(alpha) + u * sin(alpha)),
           );
+          _balls.balls.last.isVisible = true;
           await _balls.createBall(
             position: ballPosition,
             linearVelocity: (v * cos(alpha) - u * sin(alpha)),
           );
+          _balls.balls.last.isVisible = true;
           break;
         case BonusState.orange:
           accelerationRateForSpeed = -0.5;
@@ -228,6 +311,7 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
                 imagePath: 'assets/images/paddle/paddleOriginal.png',
                 isSensor: true,
             );
+            updateScore(10000);
             _balls.balls.last.destroy = true;
             _balls.removeBall();
             _brickWall.resetOnlyBonuses();
@@ -242,47 +326,36 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
     }
   }
 
-  void createBullets() {
-    var bulletLeftSize = Size(size.x * 5 / 1033, size.y * 22 / 1060);
-    var bulletLeftPosition =
-        _paddle.body.position - Vector2(43 / 135 * _paddle.size.width, 1);//22
+  void updateScore(int value) {
+    scoreValue += value;
+    if (scoreValue > highScore) {
+      highScore = scoreValue;
+      _saveHighScore();
+    }
 
-    _bulletLeft = Bullet(
-      size: bulletLeftSize,
-      position: bulletLeftPosition,
-      imagePath: 'assets/images/bullet.png',
+    _score.updateScore(
+      score: scoreValue,
+      highScore: highScore
     );
-    add(_bulletLeft);
+  }
 
-    var bulletRightSize = Size(size.x * 5 / 1033, size.y * 22 / 1060);
-    var bulletRightPosition =
-        _paddle.body.position + Vector2(43 / 135 * _paddle.size.width, -1);//113
-
-    _bulletRight = Bullet(
-      size: bulletRightSize,
-      position: bulletRightPosition,
-      imagePath: 'assets/images/bullet.png',
+  void resetScore() {
+    scoreValue = 0;
+    _score.updateScore(
+        score: scoreValue,
+        highScore: highScore
     );
-    add(_bulletRight);
   }
 
   Future<void> resetGame() async {
     gameState = GameState.initializing;
 
-    _balls.reset();
     _paddle.reset();
+    _balls.reset();
     await _brickWall.reset();
     _lives.reset();
-
-    for (final child in [...children]) {
-      if (child is Bullet) {
-        for (final fixture in [...child.body.fixtures]) {
-          child.body.destroyFixture(fixture);
-        }
-        world.destroyBody(child.body);
-        remove(child);
-      }
-    }
+    _bullets.reset();
+    resetScore();
 
     isBonusesFall = true;
     accelerationRateForSpeed = 0.0;
@@ -360,10 +433,18 @@ class Forge2dGameWorld extends Forge2DGame with HasDraggables, HasTappables {
           }
 
           if (bonusState == BonusState.red) {
-            createBullets();
+            _bullets.createBullets(
+                arenaSize: _arenaSize,
+                paddlePosition: _paddle.body.position,
+                paddleSize: _paddleSize,
+                imagePath: 'assets/images/bullet.png',
+            );
           }
         }
         if (gameState == GameState.ready) {
+          _paddle.isVisible = true;
+          _balls.balls.last.isVisible = true;
+
           overlays.remove(overlays.activeOverlays.first);
           jointDef
             ..initialize(_paddle.body, _balls.balls.last.body, _paddle.body.position, Vector2(1, 0))

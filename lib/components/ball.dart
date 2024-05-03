@@ -66,6 +66,8 @@ class Ball extends BodyComponent<Forge2dGameWorld> with ContactCallbacks, ImageL
   ui.Image? image;
   String imagePath;
 
+  bool isVisible = false;
+
   late double speed;
   static const maxSpeed = 20.0;
   static const minSpeed = 10.0;
@@ -87,7 +89,7 @@ class Ball extends BodyComponent<Forge2dGameWorld> with ContactCallbacks, ImageL
 
   @override
   void render(Canvas canvas) {
-    if (image != null) {
+    if (image != null && isVisible) {
       final circle = body.fixtures.first.shape as CircleShape;
       canvas.drawImageRect(
         image!,

@@ -1,18 +1,19 @@
 import 'dart:ui';
 import 'dart:ui' as ui;
 
+import 'bullet.dart';
 import 'paddle.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../forge2d_game_world.dart';
 import '../utils/image_loader.dart';
 import 'bonus.dart';
-import 'bullet.dart';
 
 
 
 class Arena extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
-  Vector2? size;
+  final Size size;
+  final Vector2 position;
   final String imageArenaPath;
   final String gifExitPath;
   final String imageExitPath;
@@ -28,20 +29,17 @@ class Arena extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
 
 
   Arena({
-    this.size,
+    required this.size,
+    required this.position,
     required this.imageArenaPath,
     required this.gifExitPath,
     required this.imageExitPath
   }) {
-    assert(size == null || size!.x >= 1.0 && size!.y >= 1.0);
+    assert(size.width >= 1.0 && size.height >= 1.0);
   }
-
-  late Vector2 arenaSize;
 
   @override
   Future<void> onLoad() async {
-    arenaSize = size ?? gameRef.size;
-
     imageArena = await ImageLoader.loadImage(imageArenaPath);
     frames = await ImageLoader.loadGif(gifExitPath);
     imageExit = await ImageLoader.loadImage(imageExitPath);
@@ -71,10 +69,10 @@ class Arena extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
         frames[currentFrameIndex].height.toDouble(),
       );
       final Rect destRect = Rect.fromLTWH(
-        arenaSize.x * ((1033 - 43) / 1033),
-        arenaSize.y * ((1060 - 128) / 1060),
-        arenaSize.x * 43 / 1033,
-        arenaSize.y * 128 / 1060,
+        size.width * ((1033 - 43) / 1033) + position.x,
+        size.height * ((1060 - 128) / 1060) + position.y,
+        size.width * 43 / 1033,
+        size.height * 128 / 1060,
       );
       canvas.drawImageRect(
         frames[currentFrameIndex],
@@ -102,7 +100,12 @@ class Arena extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   @override
   void render(Canvas canvas) {
     if (imageArena != null) {
-      final Rect destRect = Rect.fromLTWH(0, 0, arenaSize.x, arenaSize.y);
+      final Rect destRect = Rect.fromLTWH(
+          0 + position.x,
+          0 + position.y,
+          size.width,
+          size.height
+      );
       final Rect srcRect = Rect.fromLTWH(0, 0, imageArena!.width.toDouble(), imageArena!.height.toDouble());
       canvas.drawImageRect(imageArena!, srcRect, destRect, Paint());
     }
@@ -113,10 +116,10 @@ class Arena extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
         renderExtraImage(
           canvas,
           imageExit,
-          arenaSize.x * ((1033 - 43) / 1033),
-          arenaSize.y * ((1060 - 128) / 1060),
-          arenaSize.x * 43 / 1033,
-          arenaSize.y * 128 / 1060,
+          size.width * ((1033 - 43) / 1033) + position.x,
+          size.height * ((1060 - 128) / 1060) + position.y,
+          size.width * 43 / 1033,
+          size.height * 128 / 1060,
         );
       }
     }
@@ -124,11 +127,8 @@ class Arena extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
 
   @override
   void beginContact(Object other, Contact contact) {
-    if (other is Bullet) {
-      gameRef.remove(other);
-    }
     if (other is Paddle) {
-      if (gameRef.bonusState == BonusState.pink && other.body.position.x > arenaSize.x / 2) {
+      if (gameRef.bonusState == BonusState.pink && other.body.position.x > size.width / 2) {
         showExit = true;
       }
     }
@@ -148,10 +148,10 @@ class Arena extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
     final arenaBody = world.createBody(bodyDef);
 
     final vertices = <Vector2>[
-      Vector2(arenaSize.x * ratio.x, arenaSize.y * ratio.y),
-      Vector2(arenaSize.x * (1 - ratio.x), arenaSize.y * ratio.y),
-      Vector2(arenaSize.x * (1 - ratio.x), arenaSize.y * (1 - ratio.y)),
-      Vector2(arenaSize.x * ratio.x, arenaSize.y * (1 - ratio.y)),
+      Vector2(size.width * ratio.x + position.x, size.height * ratio.y + position.y),
+      Vector2(size.width * (1 - ratio.x) + position.x, size.height * ratio.y + position.y),
+      Vector2(size.width * (1 - ratio.x) + position.x, size.height * (1 - ratio.y) + position.y),
+      Vector2(size.width * ratio.x + position.x, size.height * (1 - ratio.y) + position.y),
     ];
 
     final chain = ChainShape()..createLoop(vertices);

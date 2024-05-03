@@ -27,7 +27,7 @@ class MainGameState extends State<MainGamePage> {
         child: LayoutBuilder(
           builder: (BuildContext context, BoxConstraints constraints) {
             final double size = constraints.maxWidth < constraints.maxHeight
-                ? constraints.maxWidth * 1033 / 1060 // 950 * 1017
+                ? constraints.maxWidth// * 1033 / 1060 // 950 * 1017
                 : constraints.maxHeight;
 
             return Center(

@@ -22,6 +22,8 @@ class Paddle extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   bool permissionToMovingLeft = true;
   bool permissionToMovingRight = true;
 
+  bool isVisible = false;
+
   Paddle({
     required this.size,
     required this.position,
@@ -36,7 +38,7 @@ class Paddle extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
 
   @override
   void render(Canvas canvas) {
-    if (image != null) {
+    if (image != null && isVisible) {
       final shape = body.fixtures.first.shape as PolygonShape;
       canvas.drawImageRect(
         image!,
@@ -176,5 +178,6 @@ class Paddle extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
     permissionToMovingRight = true;
     movingLeft = false;
     movingRight = false;
+    isVisible = false;
   }
 }

@@ -20,7 +20,6 @@ enum BrickColor {
   blue,
   pink,
   green,
-  none,
 }
 
 class Brick extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
@@ -28,6 +27,8 @@ class Brick extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
   final Vector2 position;
   final BrickColor brickColor;
   late final String imagePath;
+  late int brickLives;
+  late final int value;
   ui.Image? image;
 
   Brick({
@@ -37,6 +38,28 @@ class Brick extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
 
   }) {
     imagePath = 'assets/images/bricks/${brickColor.index}.png';
+    brickLives = (brickColor == BrickColor.gray) ? 4 : 1;
+
+    switch(brickColor) {
+      case BrickColor.gray:
+        value = 50;
+        break;
+      case BrickColor.red:
+        value = 90;
+        break;
+      case BrickColor.yellow:
+        value = 120;
+        break;
+      case BrickColor.blue:
+        value = 100;
+        break;
+      case BrickColor.pink:
+        value = 110;
+        break;
+      case BrickColor.green:
+        value = 80;
+        break;
+    }
   }
 
   @override
@@ -71,24 +94,27 @@ class Brick extends BodyComponent<Forge2dGameWorld> with ContactCallbacks {
 
   @override
   void beginContact(Object other, Contact contact) {
-    if (other is Ball || other is Bullet) {
-      destroy = true;
+    // if (other is Ball || other is Bullet) {
+    if (other is Ball) {
+      brickLives--;
+      if (brickLives == 0) {
+        destroy = true;
 
-      if (other is Bullet) {
-        gameRef.remove(other);
-      }
-      if (gameRef.isBonusesFall) {
-        double probability = 0.5;
-        double randomValue = Random().nextDouble();
+        gameRef.updateScore(value);
 
-        if (randomValue < probability) {
-          List<BonusState> bonusColors = BonusState.values;
-          int randomIndex = Random().nextInt(bonusColors.length - 1);
-          Bonus(
-              size: size,
-              position: position,
-              bonusState: bonusColors[5]
-          ).addToParent(parent!);
+        if (gameRef.isBonusesFall && brickColor != BrickColor.gray) {
+          double probability = 0.5;
+          double randomValue = Random().nextDouble();
+
+          if (randomValue < probability) {
+            List<BonusState> bonusColors = BonusState.values;
+            int randomIndex = Random().nextInt(bonusColors.length - 1);
+            Bonus(
+                size: size,
+                position: position,
+                bonusState: bonusColors[randomIndex]
+            ).addToParent(parent!);
+          }
         }
       }
     }
